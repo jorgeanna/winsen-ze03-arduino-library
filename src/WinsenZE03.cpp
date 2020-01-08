@@ -18,12 +18,12 @@ void WinsenZE03::begin(Stream *ser, int type){
 }
 
 void WinsenZE03::setAs(bool active){
-  byte setConfig[] = {0xFF, 0x01, 0x78, 0x04, 0x00, 0x00, 0x00, 0x00, 0x83};//QA config
+  byte setConfig[] = {0xFF, 0x01, 0x78, 0x41, 0x00, 0x00, 0x00, 0x00, 0x46};//4th byte should be 0x41 for QA mode, checksum also modified
   byte response[9] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
   if (active){
-    setConfig[3] =0x03;
-    setConfig[8] =0x84;
+    setConfig[3] =0x40;//4th byte should be 0x40 for active mode
+    setConfig[8] =0x47;//new checksum
   }
   _s->write(setConfig,sizeof(setConfig));
   // Wait for the response
@@ -42,7 +42,7 @@ float WinsenZE03::readContinuous(){
     byte measure[8];
     _s->readBytes(measure,9);
     // incomingByte = _s.read();
-    float ppm = measure[2]*256+measure[3];
+    float ppm = measure[4]*256+measure[5]; //In active mode results are on different locations on the response than QA
     return ppm;
   }
 }
@@ -60,9 +60,9 @@ float WinsenZE03::readManual(){
   // calculate
   if (measure[0]==0xff && measure[1]==0x86){
     ppm = measure[2]*256+measure[3];// this formula depends of the sensor is in the dataSheet
-    if (_type == 2){
-      ppm = ppm*0.1;
-    }
+//     if (_type == 2){
+//       ppm = ppm*0.1;
+//     } results are in ppb by default. 1 ppm = 1000 ppb
   }else{
     ppm=-1;
   }
